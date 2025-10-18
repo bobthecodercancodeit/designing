@@ -166,16 +166,18 @@
     function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     async function fetchUserId(username){
-      const url = `https://corsproxy.io/?https://users.roblox.com/v1/usernames/users?username=${encodeURIComponent(username)}`;
-      const res = await fetch(url);
+      const apiUrl = `https://users.roblox.com/v1/usernames/users?username=${encodeURIComponent(username)}`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+      const res = await fetch(proxyUrl);
       if(!res.ok) throw new Error('User fetch failed');
       const data = await res.json();
       return data.data?.[0]?.id || null;
     }
 
     async function fetchAvatarUrl(userId){
-      const url = `https://corsproxy.io/?https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
-      const res = await fetch(url);
+      const apiUrl = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+      const res = await fetch(proxyUrl);
       if(!res.ok) throw new Error('Avatar fetch failed');
       const data = await res.json();
       return data.data?.[0]?.imageUrl || null;
@@ -215,7 +217,7 @@
 
       } catch (err) {
         console.error(err);
-        showError('Network or CORS error. Try again later.');
+        showError('Network or proxy error. Try again later.');
         setLoading(false);
       }
     }
