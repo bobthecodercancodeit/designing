@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Roblox Avatar Viewer</title>
+  <title>Roblox Avatar Lookup</title>
   <style>
     :root{
       --card-bg: rgba(15, 23, 36, 0.65);
@@ -25,7 +25,7 @@
       background-size: cover;
     }
 
-    /* blurry overlay to soften background */
+    /* Blur overlay */
     body::before {
       content: "";
       position: fixed;
@@ -50,8 +50,8 @@
       -webkit-backdrop-filter: blur(6px);
     }
 
-    h1 { font-size: 1.8rem; margin-bottom: 12px; }
-    p.lead { margin-bottom: 18px; color: var(--muted); }
+    h1 { font-size: 1.8rem; margin-bottom: 12px; font-weight: 600; }
+    p.lead { margin-bottom: 18px; color: var(--muted); font-size: 0.95rem; }
 
     .row { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
 
@@ -65,6 +65,11 @@
       color: white;
       font-size: 15px;
       outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
     }
 
     button {
@@ -75,10 +80,16 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
+      transition: background 0.2s;
     }
+
+    button:hover:not(:disabled) {
+      background: #1e40af;
+    }
+
     button:disabled { opacity: 0.6; cursor: default; }
 
-    .meta { margin-top: 14px; min-height: 20px; }
+    .meta { margin-top: 14px; min-height: 20px; font-size: 0.9rem; }
     .error { color: var(--danger); font-weight: 600; }
 
     .avatar-wrap { margin-top: 18px; display: flex; justify-content: center; }
@@ -113,12 +124,12 @@
 </head>
 <body>
   <main class="container">
-    <h1>Roblox Avatar Viewer</h1>
-    <p class="lead">Type a Roblox username, hit the button, and their avatar headshot will appear.</p>
+    <h1>Roblox Avatar Lookup</h1>
+    <p class="lead">Enter a Roblox username to view the associated avatar.</p>
 
     <div class="row">
       <input id="username" type="text" placeholder="e.g. builderman" autocomplete="off" />
-      <button id="goBtn">Get Avatar</button>
+      <button id="goBtn">Lookup</button>
     </div>
 
     <div class="meta" id="meta"></div>
@@ -127,7 +138,7 @@
       <img id="avatarImg" class="avatar" alt="Roblox avatar headshot" width="260" height="260" />
     </div>
 
-    <footer>lelandgamer12346 | Roblox Avatar Getter</footer>
+    <footer>Powered by Roblox API · Hosted on GitHub Pages</footer>
   </main>
 
   <script>
@@ -136,7 +147,7 @@
     const meta = document.getElementById('meta');
     const avatarImg = document.getElementById('avatarImg');
 
-    async function showError(msg){
+    function showError(msg){
       meta.innerHTML = '<span class="error">'+escapeHtml(msg)+'</span>';
       avatarImg.style.display = 'none';
       avatarImg.src = '';
@@ -155,7 +166,7 @@
     function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
     async function fetchUserId(username){
-      const url = `https://users.roblox.com/v1/usernames/users?username=${encodeURIComponent(username)}`;
+      const url = `https://corsproxy.io/?https://users.roblox.com/v1/usernames/users?username=${encodeURIComponent(username)}`;
       const res = await fetch(url);
       if(!res.ok) throw new Error('User fetch failed');
       const data = await res.json();
@@ -163,7 +174,7 @@
     }
 
     async function fetchAvatarUrl(userId){
-      const url = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
+      const url = `https://corsproxy.io/?https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
       const res = await fetch(url);
       if(!res.ok) throw new Error('Avatar fetch failed');
       const data = await res.json();
@@ -172,21 +183,21 @@
 
     async function getAvatar(){
       const username = usernameInput.value.trim();
-      if(!username) return showError('Enter a username.');
+      if(!username) return showError('Please enter a username.');
 
-      setLoading(true, 'Looking up user…');
+      setLoading(true, 'Looking up user...');
       try {
         const userId = await fetchUserId(username);
         if(!userId) {
-          showError('Couldn’t find that user.');
+          showError('User not found.');
           setLoading(false);
           return;
         }
 
-        setLoading(true, 'Fetching avatar…');
+        setLoading(true, 'Fetching avatar...');
         const avatarUrl = await fetchAvatarUrl(userId);
         if(!avatarUrl){
-          showError('Couldn’t load avatar');
+          showError('Unable to load avatar.');
           setLoading(false);
           return;
         }
@@ -194,17 +205,17 @@
         avatarImg.src = avatarUrl;
         avatarImg.onload = () => {
           avatarImg.style.display = 'block';
-          meta.textContent = `User ID: ${userId} — Username: ${username}`;
+          meta.textContent = `User ID: ${userId} · Username: ${username}`;
           setLoading(false);
         };
         avatarImg.onerror = () => {
-          showError('Image load failed');
+          showError('Image load failed.');
           setLoading(false);
         };
 
       } catch (err) {
         console.error(err);
-        showError('Network or CORS error. Try using a local server.');
+        showError('Network or CORS error. Try again later.');
         setLoading(false);
       }
     }
