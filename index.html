@@ -1,229 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Roblox Avatar Lookup</title>
-  <style>
-    :root{
-      --card-bg: rgba(15, 23, 36, 0.65);
-      --accent:#2563eb;
-      --danger:#f87171;
-      --muted:#9aa4bf;
-    }
-
-    *{box-sizing:border-box;margin:0;padding:0}
-
-    body {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: Inter, Arial, sans-serif;
-      color: #fff;
-      background: url("background.avif") no-repeat center center fixed;
-      background-size: cover;
-    }
-
-    /* Blur overlay */
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      z-index: 0;
-    }
-
-    .container {
-      position: relative;
-      z-index: 1;
-      max-width: 520px;
-      background: var(--card-bg);
-      padding: 24px;
-      border-radius: 14px;
-      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
-      text-align: center;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-
-    h1 { font-size: 1.8rem; margin-bottom: 12px; font-weight: 600; }
-    p.lead { margin-bottom: 18px; color: var(--muted); font-size: 0.95rem; }
-
-    .row { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
-
-    input[type="text"] {
-      flex: 1;
-      min-width: 0;
-      padding: 10px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(0,0,0,0.3);
-      color: white;
-      font-size: 15px;
-      outline: none;
-      transition: border 0.2s;
-    }
-
-    input[type="text"]:focus {
-      border-color: var(--accent);
-    }
-
-    button {
-      padding: 10px 14px;
-      border-radius: 10px;
-      border: none;
-      background: var(--accent);
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    button:hover:not(:disabled) {
-      background: #1e40af;
-    }
-
-    button:disabled { opacity: 0.6; cursor: default; }
-
-    .meta { margin-top: 14px; min-height: 20px; font-size: 0.9rem; }
-    .error { color: var(--danger); font-weight: 600; }
-
-    .avatar-wrap { margin-top: 18px; display: flex; justify-content: center; }
-    img.avatar {
-      width: 260px;
-      height: 260px;
-      object-fit: cover;
-      border-radius: 16px;
-      border: 3px solid rgba(255,255,255,0.2);
-      display: none;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    .loading {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-weight: 600;
-    }
-
-    .spinner {
-      width: 18px; height: 18px; border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.06);
-      border-top-color: var(--accent);
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    footer { margin-top: 16px; color: var(--muted); font-size: 13px; }
-  </style>
+  <meta charset="UTF-8" />
+  <title>Federate Roblox Lookup</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://code.iconify.design/3/3.1.0/iconify.min.js"></script>
 </head>
 <body>
-  <main class="container">
-    <h1>Roblox Avatar Lookup</h1>
-    <p class="lead">Enter a Roblox username to view the associated avatar.</p>
+<div id="pw-overlay" class="pw-overlay">
+  <div class="pw-card">
+    <h2>Restricted Access</h2>
+    <input type="password" id="pw-input" placeholder="Enter Password" />
+    <button id="pw-submit">Unlock</button>
+    <p id="pw-error" class="pw-error"></p>
+  </div>
+</div>
 
-    <div class="row">
-      <input id="username" type="text" placeholder="e.g. builderman" autocomplete="off" />
-      <button id="goBtn">Lookup</button>
-    </div>
 
-    <div class="meta" id="meta"></div>
 
-    <div class="avatar-wrap">
-      <img id="avatarImg" class="avatar" alt="Roblox avatar headshot" width="260" height="260" />
-    </div>
 
-    <footer>Powered by Roblox API · Hosted on GitHub Pages</footer>
-  </main>
-
-  <script>
-    const usernameInput = document.getElementById('username');
-    const goBtn = document.getElementById('goBtn');
-    const meta = document.getElementById('meta');
-    const avatarImg = document.getElementById('avatarImg');
-
-    function showError(msg){
-      meta.innerHTML = '<span class="error">'+escapeHtml(msg)+'</span>';
-      avatarImg.style.display = 'none';
-      avatarImg.src = '';
-    }
-
-    function setLoading(on, text = 'Loading…'){
-      if(on){
-        meta.innerHTML = '<span class="loading"><span class="spinner"></span>' + escapeHtml(text) + '</span>';
-        goBtn.disabled = true;
-      } else {
-        goBtn.disabled = false;
-        if(!meta.querySelector('.error')) meta.innerHTML = '';
-      }
-    }
-
-    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    async function fetchUserId(username){
-      const apiUrl = `https://users.roblox.com/v1/usernames/users?username=${encodeURIComponent(username)}`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
-      const res = await fetch(proxyUrl);
-      if(!res.ok) throw new Error('User fetch failed');
-      const data = await res.json();
-      return data.data?.[0]?.id || null;
-    }
-
-    async function fetchAvatarUrl(userId){
-      const apiUrl = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${userId}&size=420x420&format=Png&isCircular=false`;
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
-      const res = await fetch(proxyUrl);
-      if(!res.ok) throw new Error('Avatar fetch failed');
-      const data = await res.json();
-      return data.data?.[0]?.imageUrl || null;
-    }
-
-    async function getAvatar(){
-      const username = usernameInput.value.trim();
-      if(!username) return showError('Please enter a username.');
-
-      setLoading(true, 'Looking up user...');
-      try {
-        const userId = await fetchUserId(username);
-        if(!userId) {
-          showError('User not found.');
-          setLoading(false);
-          return;
-        }
-
-        setLoading(true, 'Fetching avatar...');
-        const avatarUrl = await fetchAvatarUrl(userId);
-        if(!avatarUrl){
-          showError('Unable to load avatar.');
-          setLoading(false);
-          return;
-        }
-
-        avatarImg.src = avatarUrl;
-        avatarImg.onload = () => {
-          avatarImg.style.display = 'block';
-          meta.textContent = `User ID: ${userId} · Username: ${username}`;
-          setLoading(false);
-        };
-        avatarImg.onerror = () => {
-          showError('Image load failed.');
-          setLoading(false);
-        };
-
-      } catch (err) {
-        console.error(err);
-        showError('Network or proxy error. Try again later.');
-        setLoading(false);
-      }
-    }
-
-    goBtn.addEventListener('click', getAvatar);
-    usernameInput.addEventListener('keydown', e => { if(e.key === 'Enter') getAvatar(); });
-  </script>
+  <h1>Federate Roblox Lookup</h1>
+  <div class="input-group">
+    <input autocomplete="off" type="text" id="username" placeholder="Enter Roblox username" />
+    <button class="searchbutton" onclick="getUser()">
+      <span class="iconify" data-icon="ic:round-search"></span>
+    </button>
+  </div>
+  <div id="results"></div>
+  <div id="toast" class="toast"></div>
+  <p style="position: absolute; bottom: 15px; left: 30px;">You can access Federate website <a href="https://federateerlc.com">here</a></p>
+  <script src="script.js"></script>
 </body>
 </html>
